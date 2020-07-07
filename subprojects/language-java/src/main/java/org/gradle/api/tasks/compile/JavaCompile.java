@@ -292,7 +292,7 @@ public class JavaCompile extends AbstractCompile {
         if (javaCompiler.isPresent()) {
             return useNewToolchainCompiler();
         }
-        return legacyCompiler();
+        return legacyCompiler(spec);
     }
 
     private Compiler<JavaCompileSpec> useNewToolchainCompiler() {
@@ -302,8 +302,8 @@ public class JavaCompile extends AbstractCompile {
         return spec -> ((DefaultJavaCompiler) javaCompiler.get()).execute(spec);
     }
 
-    private Compiler<JavaCompileSpec> legacyCompiler() {
-        return CompilerUtil.castCompiler(((JavaToolChainInternal) getToolChain()).select(getPlatform()).newCompiler(JavaCompileSpec.class));
+    private Compiler<JavaCompileSpec> legacyCompiler(JavaCompileSpec spec) {
+        return CompilerUtil.castCompiler(((JavaToolChainInternal) getToolChain()).select(getPlatform()).newCompiler(spec.getClass()));
     }
 
     @Nested
