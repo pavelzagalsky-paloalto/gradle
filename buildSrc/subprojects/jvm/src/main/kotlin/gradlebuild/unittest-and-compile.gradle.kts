@@ -126,7 +126,7 @@ fun addDependencies() {
         testRuntimeOnly(library("junit5_vintage"))
         testImplementation(library("groovy"))
         testImplementation(testLibrary("spock"))
-        testRuntimeOnly(testLibrary("spock_unroll"))
+        testImplementation(testLibrary("spock_unroll"))
         testRuntimeOnly(testLibrary("bytebuddy"))
         testRuntimeOnly(library("objenesis"))
 
