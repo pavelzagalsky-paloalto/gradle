@@ -224,7 +224,7 @@ fun configureTests() {
                 maxLocalExecutors.set(0)
 //                val determinedMaxRemoteExecutors: Int = determineMaxRemoteExecutors()
 //                println("${project.name}:$testName: $determinedMaxRemoteExecutors")
-                maxRemoteExecutors.set(25)
+                maxRemoteExecutors.set(20)
                 enabled.set(true)
                 when {
                     OperatingSystem.current().isLinux -> requirements.set(listOf("os=linux"))
