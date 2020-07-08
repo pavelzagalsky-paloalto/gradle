@@ -24,15 +24,18 @@ import gradlebuild.basics.tasks.ClasspathManifest
 import gradlebuild.basics.extension.vendorAndMajorVersion
 import gradlebuild.jvm.argumentproviders.CiEnvironmentProvider
 import gradlebuild.jvm.extension.UnitTestAndCompileExtension
+import groovy.json.JsonSlurper
 import org.gradle.internal.os.OperatingSystem
 import java.util.concurrent.Callable
 import java.util.jar.Attributes
+import gradlebuild.performance.tasks.PerformanceTest
 
 plugins {
     groovy
     id("gradlebuild.module-identity")
     id("gradlebuild.available-java-installations")
     id("org.gradle.test-retry")
+    id("com.gradle.enterprise.test-distribution")
 }
 
 extensions.create<UnitTestAndCompileExtension>("gradlebuildJava", java)
@@ -197,6 +200,8 @@ fun configureTests() {
         }
     }
     tasks.withType<Test>().configureEach {
+        outputs.cacheIf { false }
+
         maxParallelForks = project.maxParallelForks
 
         if (!BuildEnvironment.isIntelliJIDEA) {
@@ -208,10 +213,24 @@ fun configureTests() {
         configureJvmForTest()
         addOsAsInputs()
 
-        if (BuildEnvironment.isCiServer && this.javaClass.simpleName != "PerformanceTest") {
+        val testName = name
+
+        if (this !is PerformanceTest) {
             retry {
                 maxRetries.set(1)
                 maxFailures.set(10)
+            }
+            distribution {
+                maxLocalExecutors.set(0)
+                val determinedMaxRemoteExecutors: Int = determineMaxRemoteExecutors()
+                println("${project.name}:$testName: $determinedMaxRemoteExecutors")
+                maxRemoteExecutors.set(determinedMaxRemoteExecutors)
+                enabled.set(true)
+                when {
+                    OperatingSystem.current().isLinux -> requirements.set(listOf("os=linux"))
+                    OperatingSystem.current().isWindows -> requirements.set(listOf("os=windows"))
+                    OperatingSystem.current().isMacOsX -> requirements.set(listOf("os=macos"))
+                }
             }
             doFirst {
                 logger.lifecycle("maxParallelForks for '$path' is $maxParallelForks")
@@ -227,6 +246,15 @@ fun removeTeamcityTempProperty() {
         val teamcity = project.property("teamcity") as MutableMap<String, Any>
         teamcity["teamcity.build.tempDir"] = ""
     }
+}
+
+fun Test.determineMaxRemoteExecutors(): Int {
+    if (!project.rootProject.extensions.extraProperties.has("maxRemoteExecutors")) {
+        val map = JsonSlurper().parse(project.rootProject.file("maxRemoteExecutors.json"))
+        project.rootProject.extensions.extraProperties.set("maxRemoteExecutors", map)
+    }
+    val remoteExecutors = project.rootProject.extensions.extraProperties.get("maxRemoteExecutors") as Map<String, Int>
+    return remoteExecutors["${project.name}:$name"] ?: (remoteExecutors.get("${name}.default") ?: 3)
 }
 
 val Project.maxParallelForks: Int

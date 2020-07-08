@@ -102,6 +102,8 @@ fun Project.createTasks(sourceSet: SourceSet, testType: TestType) {
                 // for true multi-version testing, we set up a test task per Gradle version,
                 // (see CrossVersionTestsPlugin).
                 systemProperties["org.gradle.integtest.versions"] = "default"
+
+                shouldRunAfter("embeddedIntegTest")
             }
         })
         if (executer == defaultExecuter) {
@@ -121,7 +123,6 @@ fun Project.createTasks(sourceSet: SourceSet, testType: TestType) {
 internal
 fun Project.createTestTask(name: String, executer: String, sourceSet: SourceSet, testType: TestType, extraConfig: Action<IntegrationTest>): TaskProvider<IntegrationTest> =
     tasks.register(name, IntegrationTest::class) {
-        project.bucketProvider().configureTest(this, sourceSet, testType)
         description = "Runs ${testType.prefix} with $executer executer"
         systemProperties["org.gradle.integtest.executer"] = executer
         addDebugProperties()
